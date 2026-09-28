@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #FDFBF7; 
+    --foreground: #4A1525; 
+    --primary: #6E203C; 
+    --primary-foreground: #FDFBF7;
+    --border: #E8E0D5; 
+    --muted: #F3EBE1;
+    --muted-foreground: #8B5F6C;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+input {
+  background-color: transparent;
+}

@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /urls/{urlCode} {
+      allow read, write: if false; // All operations via Admin SDK
+    }
+    match /api_keys/{key} {
+      allow read, write: if false;
+    }
+  }
+}

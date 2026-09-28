@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+firebase-admin
+pydantic[email]
+slowapi
+qrcode
+passlib[bcrypt]
+user-agents
+apscheduler
+pillow
