@@ -6,7 +6,7 @@ Designed from the ground up using modern **Systems Design** best practices to ha
 
 ---
 
-## 🚀 1-Minute WOW: Executive Summary & Architecture Highlights
+## Executive Summary & Architecture Highlights
 
 > **TL;DR:** A distributed URL shortener designed like Bitly & TinyURL that replaces database bottlenecking with Twitter Snowflake $O(1)$ key generation, non-blocking asynchronous click-stream buffering, multi-tier negative caching, and a bold Neo-Brutalist UI.
 
