@@ -52,8 +52,32 @@ class BulkShortenResponse(BaseModel):
     shortened_urls: List[URLResponse]
 
 
+class APIKeyCreateRequest(BaseModel):
+    name: Optional[str] = "Default API Key"
+    tier: Optional[str] = "basic"  # basic, pro, enterprise
+
+
+class APIKeyCreatedResponse(BaseModel):
+    api_key: str
+    key_id: str
+    name: str
+    rate_limit_tier: str
+    created_at: str
+    message: str = "Store this API key securely. You will not be able to view the full key again."
+
+
 class APIKeyResponse(BaseModel):
-    key_hash: str
+    key_id: Optional[str] = None
+    key_hash: Optional[str] = None
     owner_uid: str
     usage_count: int
     rate_limit_tier: str
+    name: Optional[str] = "API Key"
+
+
+class SystemHealthResponse(BaseModel):
+    status: str
+    cache_backend: str
+    rate_limiter_backend: str
+    analytics_queue_size: int
+    timestamp: str
