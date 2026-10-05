@@ -40,14 +40,14 @@ Designed from the ground up using modern **Systems Design** best practices to ha
 ## 📑 Table of Contents
 1. [1-Minute WOW](#-1-minute-wow-executive-summary--architecture-highlights)
 2. [Key Features](#-key-features)
-3. [Systems Design & Architecture](#-systems-design--architecture)
-4. [Deep Dive into Backend Engineering](#-deep-dive-into-backend-engineering)
-5. [Rate Limiting Policies & Tiers](#-rate-limiting-policies--tiers)
-6. [Project Directory Structure](#-project-directory-structure)
-7. [Prerequisites & Environment Variables](#-prerequisites--environment-variables)
-8. [Installation & Local Setup](#-installation--local-setup)
-9. [API Reference & Examples](#-api-reference--examples)
-10. [Firestore Data Models & Security Rules](#-firestore-data-models--security-rules)
+3. [Systems Design & Visual Architecture](#-systems-design--visual-architecture)
+4. [Live API Demo & Swagger Reference](#-live-api-demo--swagger-reference)
+5. [UI Visual Tour & Page Directory](#-ui-visual-tour--page-directory)
+6. [Deep Dive into Backend Engineering](#-deep-dive-into-backend-engineering)
+7. [Rate Limiting Policies & Tiers](#-rate-limiting-policies--tiers)
+8. [Project Directory Structure](#-project-directory-structure)
+9. [Prerequisites & Environment Variables](#-prerequisites--environment-variables)
+10. [Installation & Local Setup](#-installation--local-setup)
 11. [Running Automated Tests](#-running-automated-tests)
 
 ---
@@ -76,57 +76,105 @@ Designed from the ground up using modern **Systems Design** best practices to ha
 
 ---
 
-## 🏛️ Systems Design & Architecture
+## 🏛️ Systems Design & Visual Architecture
 
+### 📊 Clean Architecture Diagram
+
+```mermaid
+flowchart TD
+    classDef clientStyle fill:#FFE600,stroke:#000,stroke-width:2px,font-weight:bold,color:#000;
+    classDef proxyStyle fill:#FDFBF7,stroke:#000,stroke-width:2px,font-weight:bold,color:#000;
+    classDef engineStyle fill:#FFF,stroke:#000,stroke-width:2px,font-weight:bold,color:#000;
+    classDef cacheStyle fill:#00F0A8,stroke:#000,stroke-width:2px,font-weight:bold,color:#000;
+    classDef queueStyle fill:#A78BFA,stroke:#000,stroke-width:2px,font-weight:bold,color:#000;
+    classDef dbStyle fill:#38BDF8,stroke:#000,stroke-width:2px,font-weight:bold,color:#000;
+    classDef redirectStyle fill:#FF5C8D,stroke:#000,stroke-width:2px,font-weight:bold,color:#FFF;
+
+    Client["🌐 Client / Browser / API Consumer"]:::clientStyle
+    Gateway["🛡️ Sliding-Window Rate Limiter & Gateway"]:::proxyStyle
+
+    subgraph BackendCluster ["⚡ High-Performance FastAPI Engine"]
+        Snowflake["⚙️ 64-Bit Snowflake ID Generator\nBase62 Encoding (O(1))"]:::engineStyle
+        CacheLayer["⚡ Multi-Tier Cache\nL1 LRU Memory + L2 Redis Cache\n(404 Negative Caching)"]:::cacheStyle
+        EventQueue["📥 Async Event Batch Queue\n(asyncio.Queue - Non-Blocking)"]:::queueStyle
+        BatchFlusher["🔄 Micro-Batch Analytics Sync\n(Scheduled Periodic Flush)"]:::engineStyle
+    end
+
+    Firestore[("🗄️ Primary Database\nFirebase Firestore")]:::dbStyle
+    Redirect["🚀 HTTP 307 Temporary Redirect\n(< 2ms Latency)"]:::redirectStyle
+
+    %% Connections
+    Client --> Gateway
+    Gateway -- "Write /api/shorten" --> Snowflake
+    Snowflake --> Firestore
+    Snowflake -.->|"Prime Cache"| CacheLayer
+
+    Gateway -- "Read /{code}" --> CacheLayer
+    CacheLayer -- "Cache Hit (< 2ms)" --> Redirect
+    CacheLayer -- "Cache Miss" --> Firestore
+    Firestore -.->|"Populate Cache"| CacheLayer
+
+    Redirect -->|"Non-Blocking Enqueue (< 0.1ms)"| EventQueue
+    EventQueue --> BatchFlusher
+    BatchFlusher -->|"Batch Commit"| Firestore
 ```
-                                    +-----------------------+
-                                    |    Client / Browser   |
-                                    +-----------+-----------+
-                                                |
-                                                v
-                                  +-------------+-------------+
-                                  | Load Balancer / CDN Proxy |
-                                  +-------------+-------------+
-                                                |
-                                                v
-               ==================== FASTAPI BACKEND CLUSTER ====================
-               |                                                               |
-               |   +-------------------------------------------------------+   |
-               |   |          Multi-Tier Sliding Window Rate Limiter       |   |
-               |   +---------------------------+---------------------------+   |
-               |                               |                               |
-               |               +---------------+---------------+               |
-               |               |                               |               |
-               |     [ WRITE PATH: /api/shorten ]     [ READ PATH: /{code} ]   |
-               |               |                               |               |
-               |               v                               v               |
-               |      +-----------------+            +-------------------+     |
-               |      | Snowflake Keygen|            |  L1/L2 Cache      |     |
-               |      | Base62 (O(1))   |            |  (Redis / LRU)    |     |
-               |      +--------+--------+            +---------+---------+     |
-               |               |                               |               |
-               |               | (Cache Hit <2ms) ------------>|               |
-               |               | (Cache Miss: Read Firestore)  |               |
-               |               |                               v               |
-               |               |                      +------------------+     |
-               |               |                      | HTTP 307 Redirect|     |
-               |               |                      +--------+---------+     |
-               |               |                               |               |
-               |               |                               | (Async Enqueue|
-               |               |                               |  <0.1ms)      |
-               |               |                               v               |
-               |               |                     +-------------------+     |
-               |               |                     | Async Event Queue |     |
-               |               |                     | (Micro-Batcher)   |     |
-               |               |                     +---------+---------+     |
-               ================|===============================|================
-                               |                               |
-                               v                               v
-                      +-----------------+            +-------------------+
-                      | Primary DB      |            | Micro-Batch Sync  |
-                      | (Firestore)     |            | (Batch DB Writes) |
-                      +-----------------+            +-------------------+
+
+---
+
+## 📡 Live API Demo & Swagger Reference
+
+The FastAPI backend includes interactive Swagger documentation with built-in schema validation, response headers, and testing capabilities:
+
+* **Interactive Swagger UI:** 👉 [`http://localhost:8000/docs`](http://localhost:8000/docs)
+* **ReDoc Documentation:** 👉 [`http://localhost:8000/redoc`](http://localhost:8000/redoc)
+* **OpenAPI Specification:** 👉 [`http://localhost:8000/openapi.json`](http://localhost:8000/openapi.json)
+
+### 📋 Interactive Endpoint Matrix
+
+| Method | Endpoint | Description | Rate Limit Tier | Response Time |
+|---|---|---|---|---|
+| `GET` | `/{code}` | Immediate short URL redirection | 300/min (Anon) | **< 2ms** (L1/L2) |
+| `POST` | `/api/shorten` | Snowflake short code creation | 20/min (Anon) | **~15ms** |
+| `GET` | `/api/public-links` | Community public link feed | 120/min | **< 5ms** |
+| `POST` | `/api/verify/{code}` | Passcode verification gate | 10/min (Anti-Brute) | **~25ms** (Bcrypt) |
+| `GET` | `/api/qr/{code}` | Binary PNG QR generation | 30/min | **~10ms** |
+| `GET` | `/api/stats/{code}/detailed` | Detailed analytics breakdown | 120/min | **~30ms** |
+| `POST` | `/api/keys/generate` | Generate $O(1)$ developer API key | Auth Required | **~20ms** |
+| `GET` | `/api/health` | System diagnostics & cache status | Unlimited | **< 1ms** |
+
+### 💻 Quick API Test via cURL
+
+```bash
+# 1. Shorten a URL with Custom Alias & Password Protection
+curl -X POST "http://localhost:8000/api/shorten" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "long_url": "https://github.com/Shraman91/URLShortener",
+       "custom_alias": "my-cool-repo",
+       "password": "secretpasscode123"
+     }'
+
+# 2. Inspect System Health & Cache Backend
+curl -X GET "http://localhost:8000/api/health"
+
+# 3. Fetch Public Community Feed
+curl -X GET "http://localhost:8000/api/public-links?limit=10"
 ```
+
+---
+
+## 🖼️ UI Visual Tour & Page Directory
+
+The web client is built with **Next.js 14+**, **TypeScript**, and **Neo-Brutalist design tokens**:
+
+| Page / Route | Role | Highlights |
+|---|---|---|
+| **Home (`/`)** | Shorten Generator | Snowflake generator, instant clipboard copy, dynamic QR code preview |
+| **Community (`/links`)** | Public Link Feed | Real-time search, category filter pills (`All`, `Open`, `Protected`), QR modal |
+| **Dashboard (`/dashboard`)** | Creator Console | Authenticated management, click counters, OS/Device/Referrer breakdown |
+| **Passcode Safe (`/[code]/password`)** | Security Gate | Bcrypt hash verification, brute-force rate limiter |
+| **Custom 404 (`/not-found`)** | Error Diagnostic | Diagnostics box, negative-cache anti-penetration info, quick links |
+| **Link Expired (`/expired`)** | Deactivation Banner | Auto-purged notification for click-capped or time-expired links |
 
 ---
 
