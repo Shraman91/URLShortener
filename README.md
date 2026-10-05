@@ -15,16 +15,21 @@ Designed from the ground up using modern **Systems Design** best practices to ha
 | Engineering Pillar | Problem Solved | How It Works | Impact |
 |---|---|---|---|
 | **Distributed Snowflake Keygen** | Collision retries & DB increment locks | 64-bit timestamp + Node ID + Sequence with Base62 encoding | **$O(1)$ generation, 0 DB queries**, zero collision risk |
+| **🤖 AI Link Intelligence & Safety** | Malicious URLs, phishing scams & brand spoofing | Real-time heuristic scanner checking entropy, suspicious TLDs, and brands | **0–100 Safety Score**, automated threat vector flags |
 | **Decoupled Event Pipeline** | Write latency slowing down HTTP redirects | `asyncio.Queue` buffers visits and writes in scheduled micro-batches | **< 2ms redirect latency**; Firestore never blocks user |
 | **Multi-Tier Negative Caching** | Cache Penetration attacks on non-existent links | L1 In-Memory LRU + L2 Redis caching 404 results for 30s | **Database shielded** against DoS spam requests |
 | **Sliding-Window Rate Limiter** | Burst traffic & brute-force passcode cracking | Redis sliding log with automatic thread-safe in-memory fallback | Returns RFC standard `X-RateLimit-*` & `Retry-After` |
-| **Two-Tier Portal & Neo-Brutalism** | Boring interfaces & confusing permissions | Public Community Feed (`/links`) + Private Dashboard (`/dashboard`) | High-contrast, tactile UI with locked passcode gate |
+| **Live Observability (IST)** | Lack of telemetry visibility | Real-time cache hit/miss rates, queue metrics, P50/P95/P99 latency & throttles | **Live dashboard (`/system`)** with IST timestamps |
+| **Two-Tier Portal & Neo-Brutalism** | Boring interfaces & confusing permissions | Public Feed (`/links`) + Private Dashboard (`/dashboard`) | High-contrast, tactile UI with locked passcode gate |
 
 ```
                        [ 60-Second System Dataflow ]
 
   [ Client ] ──────────────► [ Sliding Window Rate Limiter ] 
                                            │ (Passed)
+                                           ▼
+   [ POST /shorten ] ────────► [ AI Threat Intelligence Scanner ] ──► Compute Safety Score (0-100)
+                                           │
                                            ▼
    [ GET /{code} ] ──────────► [ L1/L2 Cache Layer ] ──(Hit)──► HTTP 307 Redirect (<2ms)
                                      │ (Miss)                       │
@@ -140,22 +145,28 @@ The FastAPI backend includes interactive Swagger documentation with built-in sch
 | Method | Endpoint | Description | Rate Limit Tier | Response Time |
 |---|---|---|---|---|
 | `GET` | `/{code}` | Immediate short URL redirection | 300/min (Anon) | **< 2ms** (L1/L2) |
-| `POST` | `/api/shorten` | Snowflake short code creation | 20/min (Anon) | **~15ms** |
-| `GET` | `/api/public-links` | Community public link feed | 120/min | **< 5ms** |
+| `POST` | `/api/shorten` | Snowflake short code creation + AI scan | 20/min (Anon) | **~15ms** |
+| `GET` | `/api/public-links` | Community public link feed with AI badges | 120/min | **< 5ms** |
+| `POST` | `/api/scan` | Real-time AI threat & entropy scan | 120/min | **~10ms** |
+| `GET` | `/api/scan/{code}` | Fetch AI safety metrics for short code | 120/min | **< 5ms** |
 | `POST` | `/api/verify/{code}` | Passcode verification gate | 10/min (Anti-Brute) | **~25ms** (Bcrypt) |
 | `GET` | `/api/qr/{code}` | Binary PNG QR generation | 30/min | **~10ms** |
 | `GET` | `/api/stats/{code}/detailed` | Detailed analytics breakdown | 120/min | **~30ms** |
 | `POST` | `/api/keys/generate` | Generate $O(1)$ developer API key | Auth Required | **~20ms** |
+| `POST` | `/api/bulk-shorten` | High-throughput bulk shortening via API key | Tier Quota | **~30ms** |
 | `GET` | `/api/observability` | Real-time cache, latency & queue telemetry | Unlimited | **< 1ms** |
 | `GET` | `/api/health` | Basic system health probe | Unlimited | **< 1ms** |
 
 ### 💻 Quick API Test via cURL
 
 ```bash
-# 1. Inspect Full System Observability Telemetry (Cache Hit Rate, Queue, Latency, Rate Limits)
+# 1. Run AI Threat & Safety Scanner on Any URL
+curl -X POST "http://localhost:8000/api/scan?url=https://github.com/fastapi/fastapi"
+
+# 2. Inspect Full System Observability Telemetry (IST Timestamps, Cache Hit Rate, Latency P50/P95/P99)
 curl -X GET "http://localhost:8000/api/observability"
 
-# 2. Shorten a URL with Custom Alias & Password Protection
+# 3. Shorten a URL with Custom Alias, Password & AI Safety Assessment
 curl -X POST "http://localhost:8000/api/shorten" \
      -H "Content-Type: application/json" \
      -d '{
@@ -164,7 +175,7 @@ curl -X POST "http://localhost:8000/api/shorten" \
        "password": "secretpasscode123"
      }'
 
-# 3. Fetch Public Community Feed
+# 4. Fetch Public Community Feed
 curl -X GET "http://localhost:8000/api/public-links?limit=10"
 ```
 
@@ -248,6 +259,7 @@ Retry-After: 45
 ```
 URLShortener/
 ├── backend/
+│   ├── ai_scanner.py          # AI Threat Intelligence, Entropy & Phishing Scanner
 │   ├── analytics_queue.py     # Asynchronous non-blocking click buffer & batch worker
 │   ├── auth_service.py        # O(1) API Key generation & SHA-256 authentication
 │   ├── cache.py               # Redis & In-Memory LRU cache with negative caching
@@ -264,11 +276,15 @@ URLShortener/
 └── frontend/
     ├── app/
     │   ├── [code]/password/   # Password-protected link unlock screen
-    │   ├── dashboard/         # Link management dashboard & analytics charts
+    │   ├── dashboard/         # Creator analytics console & URL management
+    │   ├── links/             # Public Community link feed & QR modal
+    │   ├── system/            # Real-Time System Observability & Telemetry (IST)
     │   ├── expired/           # Expired/limit-reached landing screen
     │   ├── login/             # Firebase email/password & Google auth screen
-    │   ├── layout.tsx         # Root layout with responsive navigation
-    │   └── page.tsx           # Home page URL shortener UI & live QR generator
+    │   ├── api-client.ts      # Typed API client with AI scan & observability hooks
+    │   ├── Navigation.tsx     # Responsive Neo-Brutalist navigation bar
+    │   ├── layout.tsx         # Root layout with brutalist theme
+    │   └── page.tsx           # Home page shortener UI, QR code & AI Safety Card
     ├── context/               # AuthContext for client Firebase auth state
     └── package.json           # Next.js dependencies
 ```
@@ -354,7 +370,7 @@ Frontend will be live at: `http://localhost:3000`
 
 ## 📡 API Reference & Examples
 
-### 1. Shorten a URL
+### 1. Shorten a URL (with AI Safety Analysis)
 `POST /api/shorten`
 
 **Request Headers:**
@@ -363,8 +379,8 @@ Frontend will be live at: `http://localhost:3000`
 **Request Body:**
 ```json
 {
-  "long_url": "https://en.wikipedia.org/wiki/System_design",
-  "custom_alias": "system-design",
+  "long_url": "https://github.com/fastapi/fastapi",
+  "custom_alias": "fastapi-docs",
   "expires_at": "2026-12-31T23:59:59Z",
   "max_clicks": 500,
   "password": "optional_secure_password"
@@ -374,22 +390,103 @@ Frontend will be live at: `http://localhost:3000`
 **Response (`200 OK`):**
 ```json
 {
-  "short_code": "system-design",
-  "short_url": "http://localhost:8000/system-design",
-  "long_url": "https://en.wikipedia.org/wiki/System_design"
+  "short_code": "fastapi-docs",
+  "short_url": "http://localhost:8000/fastapi-docs",
+  "long_url": "https://github.com/fastapi/fastapi",
+  "safety_score": 100,
+  "safety_verdict": "SAFE",
+  "ai_category": "Developer & Tech",
+  "safety_flags": [
+    "SSL/TLS Encrypted",
+    "Clean Domain Reputation"
+  ]
 }
 ```
 
 ---
 
-### 2. Redirect to Long URL
-`GET /{code}`
+### 2. AI Threat & Safety Scanner
+`POST /api/scan?url=...`
 
-**Response:** `HTTP 307 Temporary Redirect` -> `Location: https://en.wikipedia.org/wiki/System_design`
+**Response (`200 OK`):**
+```json
+{
+  "url": "http://paypal-security-update.crypto-airdrop.xyz/login/verify",
+  "safety_score": 5,
+  "safety_verdict": "MALICIOUS",
+  "category": "General Web",
+  "flags": [
+    "Insecure plain HTTP (No SSL/TLS)",
+    "High-risk top-level domain (.xyz)",
+    "Potential Paypal brand spoofing / impersonation detected",
+    "High-risk credential keywords: login, verify"
+  ],
+  "entropy": 3.57
+}
+```
 
 ---
 
-### 3. Generate a Developer API Key
+### 3. Redirect to Long URL
+`GET /{code}`
+
+**Response:** `HTTP 307 Temporary Redirect` -> `Location: https://github.com/fastapi/fastapi`
+
+---
+
+### 4. Real-Time Observability Telemetry (IST)
+`GET /api/observability`
+
+**Response (`200 OK`):**
+```json
+{
+  "status": "healthy",
+  "uptime_seconds": 1845.2,
+  "timestamp": "2026-10-05T17:22:10.123456Z",
+  "cache": {
+    "backend": "InMemory-LRU",
+    "is_redis_active": false,
+    "hits": 42,
+    "misses": 3,
+    "negative_hits": 1,
+    "total_lookups": 46,
+    "hit_rate_pct": 93.48,
+    "items_in_l1": 15,
+    "negative_items": 1
+  },
+  "queue": {
+    "queue_size": 0,
+    "total_enqueued": 42,
+    "total_flushed": 42,
+    "total_batches": 6,
+    "last_flush_time": "2026-10-05T17:22:05Z",
+    "is_worker_running": true
+  },
+  "latency": {
+    "total_requests": 154,
+    "avg_latency_ms": 1.42,
+    "p50_latency_ms": 0.85,
+    "p95_latency_ms": 2.65,
+    "p99_latency_ms": 12.10,
+    "min_latency_ms": 0.40,
+    "max_latency_ms": 45.20,
+    "requests_per_minute": 5,
+    "status_codes": { "2xx": 110, "3xx": 42, "4xx": 2, "5xx": 0 }
+  },
+  "rate_limiter": {
+    "backend": "InMemory-Sliding-Window",
+    "total_checks": 154,
+    "total_blocked": 0,
+    "block_rate_pct": 0.0,
+    "blocks_by_scope": { "shorten": 0, "redirect": 0, "verify": 0 },
+    "recent_blocked_events": []
+  }
+}
+```
+
+---
+
+### 5. Generate a Developer API Key
 `POST /api/keys/generate`
 
 **Request Headers:**
@@ -417,7 +514,7 @@ Frontend will be live at: `http://localhost:3000`
 
 ---
 
-### 4. Bulk Shorten via API Key
+### 6. Bulk Shorten via API Key
 `POST /api/bulk-shorten`
 
 **Request Headers:**
@@ -435,22 +532,6 @@ Frontend will be live at: `http://localhost:3000`
 
 ---
 
-### 5. Check System Health & Observability
-`GET /api/health`
-
-**Response (`200 OK`):**
-```json
-{
-  "status": "healthy",
-  "cache_backend": "InMemory-LRU",
-  "rate_limiter_backend": "InMemory-Sliding-Window",
-  "analytics_queue_size": 0,
-  "timestamp": "2026-10-05T19:48:00.000000"
-}
-```
-
----
-
 ## 🔒 Firestore Data Models & Security Rules
 
 ### Collections Schema
@@ -463,6 +544,10 @@ Frontend will be live at: `http://localhost:3000`
   - `password_hash`: String (optional)
   - `expires_at`: ISO timestamp (optional)
   - `max_clicks`: Integer (optional)
+  - `safety_score`: Integer (0–100)
+  - `safety_verdict`: "SAFE" | "MODERATE" | "SUSPICIOUS" | "MALICIOUS"
+  - `ai_category`: String (e.g. "Developer & Tech")
+  - `safety_flags`: Array of Strings (threat vectors / security notes)
 - `urls/{code}/clicks/{clickId}`:
   - `timestamp`: ISO timestamp
   - `referrer`: String
