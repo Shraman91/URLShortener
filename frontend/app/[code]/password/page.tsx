@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Lock } from "lucide-react";
+import { Lock, KeyRound, ShieldAlert, ArrowRight } from "lucide-react";
 
 export default function PasswordPrompt() {
   const params = useParams();
@@ -46,43 +46,65 @@ export default function PasswordPrompt() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-sm border border-border text-center">
-        <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
-          <Lock className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-3xl font-extrabold text-foreground">
-            Protected Link
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            This URL is password protected. Please enter the password to continue.
-          </p>
+    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full card-brutal p-8 sm:p-10 bg-white text-center relative animate-in zoom-in-95">
+        {/* Top Sticker */}
+        <div className="inline-flex items-center gap-2 bg-brutal-pink text-white badge-brutal mb-6 rotate-[-1deg]">
+          <Lock className="w-3.5 h-3.5" />
+          <span>PASSCODE REQUIRED</span>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="w-16 h-16 bg-brutal-yellow border-3 border-black rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brutal-sm">
+          <KeyRound className="w-8 h-8 text-black" />
+        </div>
+
+        <h2 className="text-2xl sm:text-3xl font-black text-black uppercase tracking-tight">
+          Protected Short Link
+        </h2>
+        <div className="mt-1 mb-6 inline-block bg-brutal-paper border-2 border-black px-3 py-1 rounded-lg text-xs font-mono font-bold">
+          localhost:8000/{code}
+        </div>
+
+        <p className="text-sm font-bold text-gray-700 mb-6">
+          The creator secured this short URL with a secret passcode. Enter the password below to decrypt and redirect.
+        </p>
+
+        <form className="space-y-4 text-left" onSubmit={handleSubmit}>
           <div>
+            <label className="block text-xs font-black uppercase text-black mb-1.5">
+              Enter Passcode
+            </label>
             <input
               type="password"
               required
-              placeholder="Enter password"
+              placeholder="••••••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none block w-full px-3 py-3 border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+              className="w-full border-3 border-black rounded-xl px-4 py-3 text-base font-bold text-black focus:outline-none focus:bg-amber-50/40 focus:shadow-brutal transition-all"
             />
           </div>
 
-          {error && <div className="text-red-600 text-sm font-medium">{error}</div>}
+          {error && (
+            <div className="p-3 bg-red-100 border-2 border-black rounded-xl text-black font-bold text-xs shadow-brutal-sm flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:opacity-90 focus:outline-none transition-opacity disabled:opacity-50"
-            >
-              {loading ? "Verifying..." : "Access Link"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-brutal bg-brutal-yellow hover:bg-yellow-300 text-black text-sm py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
+          >
+            {loading ? (
+              <span>Verifying Passcode...</span>
+            ) : (
+              <>
+                <span>Unlock & Visit Destination</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </form>
       </div>
     </div>

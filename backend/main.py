@@ -330,8 +330,41 @@ async def get_stats_detailed(
 
 
 # ==========================================
-# 6. USER URL MANAGEMENT
+# 6. PUBLIC COMMUNITY & USER URL MANAGEMENT
 # ==========================================
+@app.get("/api/public-links", response_model=URLListResponse)
+async def get_public_links(
+    limit: int = 50,
+    _=Depends(rate_limiter("general"))
+):
+    """
+    Public community feed endpoint: Returns recent shortened links.
+    Accessible to all users (both guests and authenticated users).
+    Password-protected links are marked accordingly and will prompt for password upon opening.
+    """
+    try:
+        urls_ref = db.collection("urls").order_by("created_at", direction=gcf.Query.DESCENDING).limit(min(limit, 100))
+        docs = list(urls_ref.stream())
+    except Exception:
+        # Fallback if created_at order index is missing
+        docs = list(db.collection("urls").limit(min(limit, 100)).stream())
+
+    urls = []
+    for doc in docs:
+        data = doc.to_dict()
+        urls.append(URLDetailedResponse(
+            short_code=doc.id,
+            long_url=data.get("long_url", ""),
+            created_at=data.get("created_at", datetime.utcnow().isoformat()),
+            clicks=data.get("clicks", 0),
+            expires_at=data.get("expires_at"),
+            max_clicks=data.get("max_clicks"),
+            is_password_protected=data.get("is_password_protected", False),
+            owner_uid=data.get("owner_uid")
+        ))
+    return URLListResponse(urls=urls)
+
+
 @app.get("/api/my-urls", response_model=URLListResponse)
 async def get_my_urls(
     current_user: str = Depends(get_current_user_required),

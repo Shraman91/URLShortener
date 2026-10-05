@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Clock, Home, Link2Off, ArrowRight } from "lucide-react";
+import { Clock, ArrowRight, Zap, AlertTriangle, Globe } from "lucide-react";
 import { Suspense } from "react";
 
 function ExpiredContent() {
@@ -12,62 +12,67 @@ function ExpiredContent() {
 
   const getSubtitle = () => {
     if (reason === "clicks") {
-      return "This link has reached its maximum allowed number of clicks and is no longer accessible.";
+      return "This link reached its maximum click limit set by the author and has been permanently deactivated.";
     }
     if (reason === "time") {
-      return "This link has passed its expiration date and time.";
+      return "This link passed its scheduled expiration timestamp and is no longer serving redirects.";
     }
     return "This short link has expired and is no longer active.";
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-sm border border-border text-center animate-in fade-in zoom-in-95 duration-300">
+    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full card-brutal p-8 sm:p-10 bg-white text-center animate-in zoom-in-95">
         
-        {/* Icon Header */}
-        <div className="relative mx-auto w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-6 border border-amber-100 shadow-inner">
-          <Clock className="w-10 h-10 text-amber-600 animate-pulse" />
-          <div className="absolute -bottom-1 -right-1 bg-red-500 text-white p-1 rounded-full shadow">
-            <Link2Off className="w-4 h-4" />
+        {/* Top Badge */}
+        <div className="inline-flex items-center gap-2 bg-brutal-orange text-black badge-brutal mb-6 rotate-[-1deg]">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          <span>LINK DEACTIVATED // HTTP 410</span>
+        </div>
+
+        <div className="w-16 h-16 bg-red-100 border-3 border-black rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brutal-sm">
+          <Clock className="w-8 h-8 text-red-600" />
+        </div>
+
+        <h1 className="text-3xl font-black text-black uppercase tracking-tight">
+          Link Expired
+        </h1>
+        
+        {code && (
+          <div className="mt-1 mb-4 inline-block bg-brutal-paper border-2 border-black px-3 py-1 rounded-lg text-xs font-mono font-bold">
+            localhost:8000/{code}
           </div>
-        </div>
+        )}
 
-        {/* Title and Explanation */}
-        <div className="space-y-3">
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
-            Link Expired
-          </h1>
-          
-          {code && (
-            <div className="inline-block bg-muted px-3 py-1 rounded-full text-xs font-mono text-muted-foreground border border-border">
-              localhost:8000/{code}
-            </div>
-          )}
+        <p className="text-sm font-bold text-gray-700 leading-relaxed mb-6">
+          {getSubtitle()}
+        </p>
 
-          <p className="text-sm text-muted-foreground leading-relaxed pt-2">
-            {getSubtitle()}
-          </p>
-        </div>
-
-        {/* Informational Card */}
-        <div className="bg-amber-50/60 border border-amber-200/60 rounded-xl p-4 text-xs text-amber-800 text-left space-y-1.5">
-          <p className="font-semibold flex items-center gap-1.5 text-amber-900">
-            Why am I seeing this?
-          </p>
-          <p className="text-amber-700">
-            The creator set an expiration limit (time limit or maximum click limit) on this link for security or privacy reasons.
-          </p>
+        <div className="bg-brutal-paper border-2 border-black rounded-xl p-4 text-xs font-mono text-left mb-6 shadow-brutal-sm space-y-1">
+          <div className="font-bold text-black border-b border-black pb-1 mb-1">
+            EXPIRED URL POLICY:
+          </div>
+          <div className="text-gray-600">• Auto-purged from L1 memory cache</div>
+          <div className="text-gray-600">• Redirect halted at Gateway stage</div>
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-4 space-y-3">
+        <div className="space-y-3">
           <Link
             href="/"
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl shadow-sm text-sm font-semibold text-primary-foreground bg-primary hover:opacity-90 transition-all"
+            className="w-full btn-brutal bg-brutal-yellow hover:bg-yellow-300 text-black text-sm flex items-center justify-center gap-2"
           >
-            <Home className="w-4 h-4" />
-            Create Your Own Short Link
+            <Zap className="w-4 h-4 fill-current" />
+            <span>Create New Short Link</span>
             <ArrowRight className="w-4 h-4" />
+          </Link>
+
+          <Link
+            href="/links"
+            className="w-full btn-brutal bg-white hover:bg-brutal-paper text-black text-sm flex items-center justify-center gap-2"
+          >
+            <Globe className="w-4 h-4" />
+            <span>Browse Community Directory</span>
           </Link>
         </div>
       </div>
@@ -77,7 +82,13 @@ function ExpiredContent() {
 
 export default function LinkExpiredPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center h-64 text-muted-foreground">Loading...</div>}>
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-64">
+        <div className="badge-brutal bg-brutal-yellow text-black animate-pulse text-sm">
+          CHECKING EXPIRATION...
+        </div>
+      </div>
+    }>
       <ExpiredContent />
     </Suspense>
   );

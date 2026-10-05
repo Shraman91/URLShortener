@@ -8,19 +8,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)"
+        background: "#FFFDF5",
+        foreground: "#0A0A0A",
+        brutal: {
+          yellow: "#FFE600",
+          pink: "#FF5C8D",
+          green: "#00F0A8",
+          blue: "#38BDF8",
+          purple: "#A78BFA",
+          orange: "#FB923C",
+          dark: "#121212",
+          paper: "#FDFBF7",
         },
-        border: "var(--border)",
-        muted: {
-          DEFAULT: "var(--muted)",
-          foreground: "var(--muted-foreground)",
-        }
-      }
+      },
+      boxShadow: {
+        brutal: "4px 4px 0px 0px #000000",
+        "brutal-sm": "2px 2px 0px 0px #000000",
+        "brutal-lg": "6px 6px 0px 0px #000000",
+        "brutal-xl": "8px 8px 0px 0px #000000",
+      },
+      borderWidth: {
+        3: "3px",
+      },
     },
   },
   plugins: [],
 };
+

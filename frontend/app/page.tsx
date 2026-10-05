@@ -2,7 +2,23 @@
 
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link2, QrCode, Settings2, Download } from "lucide-react";
+import { 
+  Link2, 
+  QrCode, 
+  Settings2, 
+  Download, 
+  Copy, 
+  Check, 
+  ExternalLink, 
+  Lock, 
+  Calendar, 
+  MousePointerClick, 
+  Zap, 
+  ShieldCheck, 
+  Sparkles,
+  ArrowRight,
+  Flame
+} from "lucide-react";
 
 export default function Home() {
   const { token } = useAuth();
@@ -17,6 +33,7 @@ export default function Home() {
   const [result, setResult] = useState<{ short_url: string, short_code: string } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
 
   async function fetchQrCode(code: string) {
@@ -36,11 +53,12 @@ export default function Home() {
     setResult(null);
     setQrCodeData(null);
     setLoading(true);
+    setCopied(false);
     
     try {
       const payload: any = { long_url: longUrl };
-      if (alias) payload.custom_alias = alias;
-      if (password) payload.password = password;
+      if (alias.trim()) payload.custom_alias = alias.trim();
+      if (password.trim()) payload.password = password.trim();
       if (expiresAt) payload.expires_at = new Date(expiresAt).toISOString();
       if (maxClicks) payload.max_clicks = parseInt(maxClicks);
 
@@ -65,130 +83,266 @@ export default function Home() {
     }
   }
 
+  const handleCopy = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result.short_url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <main className="max-w-3xl mx-auto mt-20 p-6">
-      <div className="text-center mb-12">
-        <h1 className="text-5xl font-extrabold text-primary mb-4 tracking-tight">Make Every Link Count</h1>
-        <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          Shorten, personalize, and track your links with our powerful tools. Enhance your digital presence today.
+    <main className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      {/* Hero Header */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 bg-brutal-yellow badge-brutal mb-4 rotate-[-1deg]">
+          <Zap className="w-4 h-4 fill-current" />
+          <span>Distributed Snowflake URL Engine</span>
+        </div>
+
+        <h1 className="text-4xl sm:text-6xl font-black text-black tracking-tight uppercase mb-3">
+          Shorten Links. <br />
+          <span className="bg-brutal-pink text-white px-3 py-0.5 inline-block rotate-[1deg] border-2 border-black shadow-brutal-sm">
+            Break Nothing.
+          </span>
+        </h1>
+
+        <p className="text-base sm:text-lg font-bold text-gray-700 max-w-xl mx-auto mt-4">
+          Lightning-fast short links powered by snowflake IDs, multi-tier caching, and password protection.
         </p>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-border">
+      {/* Main Shortener Form Box */}
+      <div className="card-brutal p-6 sm:p-10 mb-8 bg-white relative">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Link2 className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <input
-              type="url"
-              placeholder="Paste your long URL here..."
-              value={longUrl}
-              onChange={(e) => setLongUrl(e.target.value)}
-              required
-              className="w-full bg-background border border-border rounded-xl pl-12 pr-4 py-4 text-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <button 
-              type="button" 
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Settings2 className="w-4 h-4" />
-              {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
-            </button>
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-md"
-            >
-              {loading ? "Shortening..." : "Shorten URL"}
-            </button>
-          </div>
-
-          {showAdvanced && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-muted rounded-xl border border-border animate-in fade-in slide-in-from-top-4 duration-300">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-foreground block">Custom Alias</label>
+          {/* Main Input */}
+          <div className="space-y-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-black">
+              Enter Destination URL
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
                 <input
-                  type="text"
-                  placeholder="e.g. my-promo"
-                  value={alias}
-                  onChange={(e) => setAlias(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  type="url"
+                  placeholder="https://example.com/very-long-url-to-shorten"
+                  value={longUrl}
+                  onChange={(e) => setLongUrl(e.target.value)}
+                  required
+                  className="w-full border-3 border-black rounded-xl px-4 py-3.5 text-base sm:text-lg font-bold text-black placeholder:text-gray-400 focus:outline-none focus:bg-amber-50/40 focus:shadow-brutal transition-all"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-foreground block">Password Protection</label>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-brutal bg-brutal-yellow hover:bg-yellow-300 text-black text-base flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
+              >
+                {loading ? (
+                  <span>Generating...</span>
+                ) : (
+                  <>
+                    <Zap className="w-5 h-5 fill-current" />
+                    <span>Shorten URL</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Advanced Options Toggle */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-black hover:text-brutal-pink transition-colors bg-brutal-paper border-2 border-black px-3 py-1.5 rounded-lg shadow-brutal-sm"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              <span>{showAdvanced ? "Hide Advanced Config" : "Show Advanced Config (Passcode, Alias, Expiry)"}</span>
+            </button>
+          </div>
+
+          {/* Advanced Configuration Grid */}
+          {showAdvanced && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t-2 border-black border-dashed animate-in fade-in slide-in-from-top-2">
+              {/* Custom Alias */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wide text-black flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-brutal-pink" />
+                  Custom Slug (Alias)
+                </label>
+                <div className="flex items-center">
+                  <span className="bg-brutal-paper border-2 border-r-0 border-black px-3 py-2.5 rounded-l-xl text-xs font-mono font-bold text-gray-600">
+                    /
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="my-cool-link"
+                    value={alias}
+                    onChange={(e) => setAlias(e.target.value)}
+                    className="w-full border-2 border-black rounded-r-xl px-3 py-2 text-sm font-bold text-black focus:outline-none focus:bg-amber-50/40"
+                  />
+                </div>
+              </div>
+
+              {/* Password Protection */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wide text-black flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                  Passcode Protection
+                </label>
                 <input
                   type="password"
-                  placeholder="Leave blank for public"
+                  placeholder="Secret passcode required to open"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  className="w-full border-2 border-black rounded-xl px-3 py-2 text-sm font-bold text-black focus:outline-none focus:bg-amber-50/40"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-foreground block">Expiration Date</label>
+
+              {/* Expiration Date */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wide text-black flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                  Expiry Date & Time
+                </label>
                 <input
                   type="datetime-local"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  className="w-full border-2 border-black rounded-xl px-3 py-2 text-sm font-bold text-black focus:outline-none focus:bg-amber-50/40"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-foreground block">Max Clicks</label>
+
+              {/* Max Clicks */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wide text-black flex items-center gap-1.5">
+                  <MousePointerClick className="w-3.5 h-3.5 text-purple-600" />
+                  Max Click Limit
+                </label>
                 <input
                   type="number"
-                  placeholder="Unlimited"
+                  min="1"
+                  placeholder="e.g. 50 (expires after limit)"
                   value={maxClicks}
                   onChange={(e) => setMaxClicks(e.target.value)}
-                  min="1"
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  className="w-full border-2 border-black rounded-xl px-3 py-2 text-sm font-bold text-black focus:outline-none focus:bg-amber-50/40"
                 />
               </div>
             </div>
           )}
         </form>
 
+        {/* Error Message */}
         {error && (
-          <div className="mt-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-            {error}
+          <div className="mt-6 p-4 bg-red-100 border-2 border-black rounded-xl text-black font-bold text-sm shadow-brutal-sm flex items-center gap-2">
+            <span className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">!</span>
+            <span>{error}</span>
           </div>
         )}
 
+        {/* Result Card */}
         {result && (
-          <div className="mt-8 p-6 bg-muted border border-border rounded-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-lg font-bold text-foreground mb-4">Your shortened URL is ready!</h3>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex-1 w-full bg-background p-4 rounded-lg border border-border break-all text-primary font-medium text-lg">
-                <a href={result.short_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                  {result.short_url}
-                </a>
+          <div className="mt-8 pt-8 border-t-3 border-black animate-in fade-in zoom-in-95">
+            <div className="bg-brutal-paper border-2 border-black rounded-2xl p-6 shadow-brutal">
+              <div className="flex items-center gap-2 bg-brutal-green badge-brutal mb-4 inline-flex">
+                <Check className="w-3.5 h-3.5" />
+                <span>LINK SHORTENED SUCCESSFULLY</span>
               </div>
-              
-              {qrCodeData && (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="bg-white p-2 rounded-lg border border-border shadow-sm">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={qrCodeData} alt="QR Code" className="w-32 h-32" />
+
+              <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                {/* Short Code & Actions */}
+                <div className="space-y-4 w-full lg:w-2/3">
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-wider text-gray-500">Your Short Link</span>
+                    <div className="text-2xl sm:text-3xl font-black text-black font-mono tracking-tight break-all">
+                      {result.short_url}
+                    </div>
                   </div>
-                  <a 
-                    href={qrCodeData} 
-                    download={`qrcode-${result.short_code}.png`}
-                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <Download className="w-3 h-3" />
-                    Download QR
-                  </a>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={handleCopy}
+                      className="btn-brutal bg-brutal-yellow hover:bg-yellow-300 text-black text-sm flex items-center gap-2"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-800" />
+                          <span>COPIED TO CLIPBOARD!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>COPY LINK</span>
+                        </>
+                      )}
+                    </button>
+
+                    <a
+                      href={result.short_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-brutal bg-white hover:bg-gray-100 text-black text-sm flex items-center gap-1.5"
+                    >
+                      <span>TEST LINK</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
                 </div>
-              )}
+
+                {/* QR Code */}
+                {qrCodeData && (
+                  <div className="border-2 border-black rounded-xl p-3 bg-white text-center shadow-brutal-sm flex-shrink-0">
+                    <img
+                      src={qrCodeData}
+                      alt={`QR code for ${result.short_code}`}
+                      className="w-32 h-32 mx-auto mb-2"
+                    />
+                    <a
+                      href={qrCodeData}
+                      download={`qr-${result.short_code}.png`}
+                      className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-wide text-black hover:text-brutal-pink"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download QR
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Feature Badges Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="card-brutal p-5 bg-white">
+          <div className="inline-block p-2.5 rounded-xl bg-brutal-yellow border-2 border-black shadow-brutal-sm mb-3">
+            <Zap className="w-5 h-5 text-black" />
+          </div>
+          <h3 className="text-base font-black uppercase text-black">Snowflake IDs</h3>
+          <p className="text-xs font-bold text-gray-600 mt-1">
+            Zero collision rate with 64-bit distributed snowflake key generation.
+          </p>
+        </div>
+
+        <div className="card-brutal p-5 bg-white">
+          <div className="inline-block p-2.5 rounded-xl bg-brutal-green border-2 border-black shadow-brutal-sm mb-3">
+            <ShieldCheck className="w-5 h-5 text-black" />
+          </div>
+          <h3 className="text-base font-black uppercase text-black">Multi-Tier Cache</h3>
+          <p className="text-xs font-bold text-gray-600 mt-1">
+            Sub-millisecond L1 in-memory + Redis caching with 404 anti-penetration.
+          </p>
+        </div>
+
+        <div className="card-brutal p-5 bg-white">
+          <div className="inline-block p-2.5 rounded-xl bg-brutal-pink border-2 border-black shadow-brutal-sm mb-3">
+            <Lock className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-base font-black uppercase text-black">Password Protected</h3>
+          <p className="text-xs font-bold text-gray-600 mt-1">
+            Bcrypt hashed access keys to lock sensitive links from unauthorized eyes.
+          </p>
+        </div>
       </div>
     </main>
   );

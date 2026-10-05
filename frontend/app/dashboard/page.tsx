@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Trash2, ExternalLink, BarChart3, Clock, Globe, Smartphone, Monitor } from "lucide-react";
+import { Trash2, ExternalLink, BarChart3, Clock, Globe, Smartphone, Monitor, Plus, Zap, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 interface URLData {
   short_code: string;
@@ -60,7 +61,7 @@ export default function DashboardPage() {
   };
 
   const handleDelete = async (code: string) => {
-    if (!confirm("Are you sure you want to delete this URL?")) return;
+    if (!confirm(`Are you sure you want to delete short link /${code}?`)) return;
     
     try {
       const res = await fetch(`http://localhost:8000/api/urls/${code}`, {
@@ -93,73 +94,121 @@ export default function DashboardPage() {
   };
 
   if (loading || fetchLoading) {
-    return <div className="flex justify-center items-center h-64 text-muted-foreground">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="badge-brutal bg-brutal-yellow text-black animate-pulse text-sm">
+          LOADING DASHBOARD...
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-end mb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage your shortened URLs and view analytics.</p>
+          <div className="inline-flex items-center gap-2 bg-brutal-pink text-white badge-brutal mb-2 rotate-[-1deg]">
+            <Zap className="w-3.5 h-3.5" />
+            <span>Authenticated Creator Console</span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-black text-black tracking-tight uppercase">
+            My Dashboard
+          </h1>
+          <p className="text-sm sm:text-base font-bold text-gray-700 mt-1">
+            Manage your personal links, inspect click trends, and analyze traffic.
+          </p>
         </div>
+
+        <Link
+          href="/"
+          className="btn-brutal bg-brutal-yellow hover:bg-yellow-300 text-black text-sm inline-flex items-center gap-2 self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>New Link</span>
+        </Link>
       </div>
 
       {urls.length === 0 ? (
-        <div className="bg-white p-10 rounded-2xl border border-border text-center shadow-sm">
-          <h3 className="text-xl font-semibold text-foreground mb-2">No URLs found</h3>
-          <p className="text-muted-foreground mb-6">You haven't shortened any URLs yet.</p>
+        <div className="card-brutal p-12 bg-white text-center">
+          <h3 className="text-2xl font-black text-black uppercase mb-2">No Links Created Yet</h3>
+          <p className="text-gray-600 font-bold text-sm mb-6">
+            You haven't shortened any links with your account.
+          </p>
           <button 
             onClick={() => router.push("/")}
-            className="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
+            className="btn-brutal bg-brutal-yellow text-black text-sm"
           >
-            Create your first link
+            Create Your First Link
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* URL List */}
           <div className="lg:col-span-2 space-y-4">
             {urls.map((url) => (
-              <div key={url.short_code} className={`bg-white rounded-xl border p-5 transition-all ${selectedStats?.code === url.short_code ? 'border-primary shadow-md' : 'border-border shadow-sm hover:border-gray-300'}`}>
+              <div 
+                key={url.short_code} 
+                className={`card-brutal p-5 bg-white transition-all ${
+                  selectedStats?.code === url.short_code 
+                    ? 'border-3 border-black bg-amber-50/40 shadow-brutal-lg' 
+                    : 'hover:shadow-brutal-lg'
+                }`}
+              >
                 <div className="flex justify-between items-start">
-                  <div className="space-y-1 overflow-hidden pr-4">
-                    <a href={`http://localhost:8000/${url.short_code}`} target="_blank" rel="noreferrer" className="text-lg font-bold text-primary hover:underline flex items-center gap-2">
+                  <div className="space-y-2 overflow-hidden pr-4">
+                    <a 
+                      href={`http://localhost:8000/${url.short_code}`} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-xl font-black text-black font-mono hover:text-brutal-pink flex items-center gap-2"
+                    >
                       localhost:8000/{url.short_code}
-                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      <ExternalLink className="w-4 h-4 text-gray-400" />
                     </a>
-                    <p className="text-sm text-muted-foreground truncate" title={url.long_url}>
+                    
+                    <p className="text-xs font-mono font-bold text-gray-700 truncate bg-brutal-paper border-2 border-black px-3 py-1.5 rounded-lg" title={url.long_url}>
                       {url.long_url}
                     </p>
-                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground font-medium">
-                      <span className="flex items-center gap-1">
+
+                    <div className="flex flex-wrap gap-2 text-xs font-bold pt-1">
+                      <span className="flex items-center gap-1 bg-brutal-paper border border-black px-2 py-0.5 rounded">
                         <Clock className="w-3 h-3" />
                         {new Date(url.created_at).toLocaleDateString()}
                       </span>
                       {url.is_password_protected && (
-                        <span className="bg-muted px-2 py-0.5 rounded text-primary">Password Protected</span>
+                        <span className="bg-brutal-pink text-white border border-black px-2 py-0.5 rounded">
+                          Passcode Protected
+                        </span>
                       )}
                       {url.expires_at && (
-                        <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded">
+                        <span className="bg-red-100 text-red-900 border border-black px-2 py-0.5 rounded">
                           Expires: {new Date(url.expires_at).toLocaleDateString()}
                         </span>
                       )}
                     </div>
                   </div>
                   
+                  {/* Actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button 
                       onClick={() => fetchStats(url.short_code)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedStats?.code === url.short_code ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-gray-200'}`}
+                      className={`btn-brutal text-xs py-1.5 px-3 flex items-center gap-1.5 ${
+                        selectedStats?.code === url.short_code 
+                          ? 'bg-black text-white' 
+                          : 'bg-brutal-yellow text-black'
+                      }`}
                     >
-                      <BarChart3 className="w-4 h-4" />
-                      {url.clicks} Clicks
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      <span>{url.clicks} Clicks</span>
                     </button>
+
                     <button 
                       onClick={() => handleDelete(url.short_code)}
-                      className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 border-2 border-black rounded-lg bg-white hover:bg-red-200 text-black shadow-brutal-sm transition-all"
                       title="Delete URL"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4 text-red-600" />
                     </button>
                   </div>
                 </div>
@@ -167,56 +216,69 @@ export default function DashboardPage() {
             ))}
           </div>
 
+          {/* Analytics Column */}
           <div className="lg:col-span-1">
             {selectedStats ? (
-              <div className="bg-white rounded-xl border border-border p-6 shadow-sm sticky top-6 animate-in fade-in slide-in-from-right-4">
-                <h3 className="text-xl font-bold text-foreground border-b border-border pb-4 mb-4">
-                  Analytics for /{selectedStats.code}
-                </h3>
+              <div className="card-brutal bg-white p-6 sticky top-24 shadow-brutal-lg animate-in fade-in slide-in-from-right-4">
+                <div className="border-b-2 border-black pb-3 mb-5 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-black uppercase text-gray-500">Analytics</span>
+                    <h3 className="text-xl font-black text-black font-mono">
+                      /{selectedStats.code}
+                    </h3>
+                  </div>
+                  <div className="badge-brutal bg-brutal-green text-black">
+                    {selectedStats.stats.total_clicks} TOTAL
+                  </div>
+                </div>
                 
                 <div className="space-y-6">
+                  {/* Referrers */}
                   <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Top Referrers</h4>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-black mb-2 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-brutal-blue" />
+                      Top Referrers
+                    </h4>
                     <div className="space-y-2">
                       {Object.entries(selectedStats.stats.top_referrers).map(([ref, count]) => (
-                        <div key={ref} className="flex justify-between items-center text-sm">
-                          <span className="flex items-center gap-2 truncate max-w-[200px]">
-                            <Globe className="w-4 h-4 text-muted-foreground" />
-                            {ref}
-                          </span>
-                          <span className="font-medium bg-muted px-2 py-0.5 rounded">{count}</span>
+                        <div key={ref} className="flex justify-between items-center text-xs font-bold border-2 border-black rounded-lg p-2 bg-brutal-paper">
+                          <span className="truncate max-w-[170px]">{ref}</span>
+                          <span className="bg-brutal-yellow border border-black px-2 py-0.5 rounded font-mono">{count}</span>
                         </div>
                       ))}
                       {Object.keys(selectedStats.stats.top_referrers).length === 0 && (
-                        <p className="text-sm text-muted-foreground italic">No data yet</p>
+                        <p className="text-xs text-gray-500 italic font-medium">No referrer data yet</p>
                       )}
                     </div>
                   </div>
 
+                  {/* Devices */}
                   <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Top Devices</h4>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-black mb-2 flex items-center gap-1.5">
+                      <Smartphone className="w-3.5 h-3.5 text-brutal-green" />
+                      Devices
+                    </h4>
                     <div className="space-y-2">
                       {Object.entries(selectedStats.stats.top_devices).map(([dev, count]) => (
-                        <div key={dev} className="flex justify-between items-center text-sm">
-                          <span className="flex items-center gap-2">
-                            {dev.toLowerCase().includes('mac') || dev.toLowerCase().includes('windows') ? 
-                              <Monitor className="w-4 h-4 text-muted-foreground" /> : 
-                              <Smartphone className="w-4 h-4 text-muted-foreground" />}
-                            {dev}
-                          </span>
-                          <span className="font-medium bg-muted px-2 py-0.5 rounded">{count}</span>
+                        <div key={dev} className="flex justify-between items-center text-xs font-bold border-2 border-black rounded-lg p-2 bg-brutal-paper">
+                          <span>{dev}</span>
+                          <span className="bg-brutal-green border border-black px-2 py-0.5 rounded font-mono">{count}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                   
-                   <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Top Browsers</h4>
+                  {/* Browsers */}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-black mb-2 flex items-center gap-1.5">
+                      <Monitor className="w-3.5 h-3.5 text-brutal-purple" />
+                      Browsers
+                    </h4>
                     <div className="space-y-2">
                       {Object.entries(selectedStats.stats.top_browsers).map(([browser, count]) => (
-                        <div key={browser} className="flex justify-between items-center text-sm">
-                          <span className="truncate">{browser}</span>
-                          <span className="font-medium bg-muted px-2 py-0.5 rounded">{count}</span>
+                        <div key={browser} className="flex justify-between items-center text-xs font-bold border-2 border-black rounded-lg p-2 bg-brutal-paper">
+                          <span>{browser}</span>
+                          <span className="bg-brutal-pink text-white border border-black px-2 py-0.5 rounded font-mono">{count}</span>
                         </div>
                       ))}
                     </div>
@@ -224,9 +286,11 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-muted/50 rounded-xl border border-dashed border-border p-10 text-center flex flex-col items-center justify-center h-full min-h-[300px]">
-                <BarChart3 className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
-                <p className="text-muted-foreground font-medium">Select a URL to view detailed analytics</p>
+              <div className="card-brutal p-8 bg-brutal-paper text-center flex flex-col items-center justify-center min-h-[300px]">
+                <BarChart3 className="w-12 h-12 text-black mb-3 opacity-40" />
+                <p className="text-black font-black uppercase text-xs tracking-wider">
+                  Select a short link to inspect real-time click analytics
+                </p>
               </div>
             )}
           </div>
