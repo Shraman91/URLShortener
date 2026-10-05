@@ -211,6 +211,8 @@ def rate_limiter(action: str = "general"):
             rule.window_seconds
         )
 
+        _record_check(allowed=allowed, scope=action, tier=tier_key, client_id=identifier)
+
         # Store headers in request.state for response injection
         request.state.rate_limit_headers = {
             "X-RateLimit-Limit": str(rule.max_requests),
@@ -235,3 +237,56 @@ def rate_limiter(action: str = "general"):
             )
 
     return dependency
+
+
+# ==========================================
+# Observability & Rate Limit Telemetry
+# ==========================================
+_rate_stats = {
+    "total_checks": 0,
+    "total_blocked": 0,
+    "blocks_by_scope": {
+        "shorten": 0,
+        "redirect": 0,
+        "verify": 0,
+        "qr": 0,
+        "general": 0,
+    },
+    "recent_blocked_events": []  # max 20 events
+}
+_rate_stats_lock = threading.Lock()
+
+
+def _record_check(allowed: bool, scope: str, tier: str, client_id: str):
+    with _rate_stats_lock:
+        _rate_stats["total_checks"] += 1
+        if not allowed:
+            _rate_stats["total_blocked"] += 1
+            _rate_stats["blocks_by_scope"][scope] = _rate_stats["blocks_by_scope"].get(scope, 0) + 1
+            
+            event = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "scope": scope,
+                "tier": tier,
+                "client": client_id[:16] + "..." if len(client_id) > 16 else client_id,
+            }
+            _rate_stats["recent_blocked_events"].insert(0, event)
+            if len(_rate_stats["recent_blocked_events"]) > 20:
+                _rate_stats["recent_blocked_events"].pop()
+
+
+def get_rate_limiter_stats() -> Dict[str, Any]:
+    """Returns rate limit trigger observability metrics."""
+    with _rate_stats_lock:
+        checks = _rate_stats["total_checks"]
+        blocked = _rate_stats["total_blocked"]
+        block_rate = round((blocked / checks * 100), 2) if checks > 0 else 0.0
+        return {
+            "backend": "Redis-ZSET" if _redis_available else "InMemory-Sliding-Window",
+            "total_checks": checks,
+            "total_blocked": blocked,
+            "block_rate_pct": block_rate,
+            "blocks_by_scope": dict(_rate_stats["blocks_by_scope"]),
+            "recent_blocked_events": list(_rate_stats["recent_blocked_events"]),
+        }
+

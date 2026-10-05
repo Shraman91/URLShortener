@@ -50,6 +50,17 @@ export default function Navigation() {
                 <Globe className="w-4 h-4" />
                 Community
               </Link>
+              <Link 
+                href="/system"
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-extrabold uppercase tracking-wide border-2 transition-all ${
+                  pathname === "/system"
+                    ? "bg-brutal-purple border-black shadow-brutal-sm text-black" 
+                    : "border-transparent text-black/80 hover:border-black hover:bg-brutal-paper"
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                System
+              </Link>
               {user && (
                 <Link 
                   href="/dashboard"

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Trash2, ExternalLink, BarChart3, Clock, Globe, Smartphone, Monitor, Plus, Zap, AlertCircle } from "lucide-react";
+import { Trash2, ExternalLink, BarChart3, Clock, Globe, Smartphone, Monitor, Plus, Zap, AlertCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 interface URLData {
@@ -14,6 +14,10 @@ interface URLData {
   expires_at?: string;
   max_clicks?: number;
   is_password_protected: boolean;
+  safety_score?: number;
+  safety_verdict?: string;
+  ai_category?: string;
+  safety_flags?: string[];
 }
 
 interface URLStats {
@@ -176,6 +180,25 @@ export default function DashboardPage() {
                         <Clock className="w-3 h-3" />
                         {new Date(url.created_at).toLocaleDateString()}
                       </span>
+
+                      {/* AI Safety Score Badge */}
+                      <span className={`flex items-center gap-1 border border-black px-2 py-0.5 rounded font-mono text-[11px] ${
+                        (url.safety_score ?? 100) >= 85
+                          ? "bg-emerald-200 text-emerald-950"
+                          : (url.safety_score ?? 100) >= 65
+                          ? "bg-amber-200 text-amber-950"
+                          : "bg-red-200 text-red-950"
+                      }`}>
+                        <ShieldCheck className="w-3 h-3" />
+                        AI: {url.safety_score ?? 100}/100 {url.safety_verdict || "SAFE"}
+                      </span>
+
+                      {url.ai_category && (
+                        <span className="bg-purple-100 text-purple-950 border border-black px-2 py-0.5 rounded font-mono text-[11px]">
+                          {url.ai_category}
+                        </span>
+                      )}
+
                       {url.is_password_protected && (
                         <span className="bg-brutal-pink text-white border border-black px-2 py-0.5 rounded">
                           Passcode Protected

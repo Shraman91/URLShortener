@@ -20,6 +20,11 @@ class AsyncAnalyticsQueue:
         self._queue: asyncio.Queue = asyncio.Queue()
         self._worker_task: asyncio.Task = None
         self._running = False
+        # Telemetry metrics
+        self.total_enqueued: int = 0
+        self.total_flushed: int = 0
+        self.total_batches: int = 0
+        self.last_flush_time: Optional[str] = None
 
     def start(self):
         if not self._running:
@@ -43,8 +48,21 @@ class AsyncAnalyticsQueue:
         """Non-blocking instant enqueue for redirect requests."""
         try:
             self._queue.put_nowait(event)
+            self.total_enqueued += 1
         except Exception as e:
             print(f"[AnalyticsQueue] Enqueue warning: {e}")
+
+    def get_queue_stats(self) -> Dict[str, Any]:
+        """Returns real-time queue observability metrics."""
+        return {
+            "queue_size": self._queue.qsize(),
+            "total_enqueued": self.total_enqueued,
+            "total_flushed": self.total_flushed,
+            "total_batches": self.total_batches,
+            "last_flush_time": self.last_flush_time,
+            "is_worker_running": self._running,
+        }
+
 
     async def _process_queue(self):
         buffer: List[Dict[str, Any]] = []
@@ -91,8 +109,12 @@ class AsyncAnalyticsQueue:
         try:
             # Run blocking Firestore batch operations in threadpool
             await asyncio.to_thread(self._sync_flush, events)
+            self.total_flushed += len(events)
+            self.total_batches += 1
+            self.last_flush_time = datetime.utcnow().isoformat()
         except Exception as e:
             print(f"[AnalyticsQueue] Failed to flush click batch: {e}")
+
 
     def _sync_flush(self, events: List[Dict[str, Any]]):
         # Aggregate clicks per short_code for parent document update

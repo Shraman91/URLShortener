@@ -267,6 +267,24 @@ export default function CommunityLinksPage() {
                             Public Open
                           </span>
                         )}
+
+                        {/* AI Safety Score Badge */}
+                        <span className={`badge-brutal flex items-center gap-1 font-mono text-[11px] ${
+                          (link.safety_score ?? 100) >= 85
+                            ? "bg-emerald-200 text-emerald-950"
+                            : (link.safety_score ?? 100) >= 65
+                            ? "bg-amber-200 text-amber-950"
+                            : "bg-red-200 text-red-950"
+                        }`}>
+                          <ShieldCheck className="w-3 h-3" />
+                          AI: {link.safety_score ?? 100}/100 {link.safety_verdict || "SAFE"}
+                        </span>
+
+                        {link.ai_category && (
+                          <span className="badge-brutal bg-purple-100 text-purple-950 font-mono text-[11px]">
+                            {link.ai_category}
+                          </span>
+                        )}
                       </div>
                     </div>
 

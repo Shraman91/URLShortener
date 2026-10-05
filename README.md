@@ -67,7 +67,13 @@ Designed from the ground up using modern **Systems Design** best practices to ha
 - **GDPR Privacy Compliance**: Client IP addresses are hashed using SHA-256 before persistence.
 - **User Dashboard**: Secure dashboard to manage links, copy URLs, view QR codes, inspect real-time click metrics, and delete links.
 
-### 🛡️ High-Performance Architecture & Security
+### 🛡️ High-Performance Architecture, Security & AI Intelligence
+- **🤖 AI Link Intelligence & Safety Scoring**: Evaluates every URL upon shortening with real-time heuristic & threat vector analysis:
+  - **Safety Score (0–100)**: Color-coded threat score (`SAFE`, `MODERATE`, `SUSPICIOUS`, `MALICIOUS`).
+  - **Phishing & Brand Spoofing Detection**: Identifies impersonation vectors across popular services (PayPal, Google, Apple, Metamask, etc.).
+  - **Lexical Shannon Entropy**: Detects machine-generated / algorithmically random DGA domains.
+  - **TLD & Protocol Auditing**: Flags plaintext HTTP and high-risk abuse TLDs (`.xyz`, `.top`, `.zip`, `.click`).
+  - **AI Category Classification**: Tags links by domain category (Developer & Tech, Media, E-Commerce, Social, News).
 - **Sub-2ms Redirections**: Multi-level caching (Redis L2 + In-Memory LRU L1) serves hot links without database queries.
 - **Negative Caching**: Caches 404s to eliminate **Cache Penetration Attacks** on spam/non-existent links.
 - **Decoupled Analytics**: Non-blocking in-memory queue (`asyncio.Queue`) flushes click events in micro-batches, eliminating write delays on redirects.
@@ -140,12 +146,16 @@ The FastAPI backend includes interactive Swagger documentation with built-in sch
 | `GET` | `/api/qr/{code}` | Binary PNG QR generation | 30/min | **~10ms** |
 | `GET` | `/api/stats/{code}/detailed` | Detailed analytics breakdown | 120/min | **~30ms** |
 | `POST` | `/api/keys/generate` | Generate $O(1)$ developer API key | Auth Required | **~20ms** |
-| `GET` | `/api/health` | System diagnostics & cache status | Unlimited | **< 1ms** |
+| `GET` | `/api/observability` | Real-time cache, latency & queue telemetry | Unlimited | **< 1ms** |
+| `GET` | `/api/health` | Basic system health probe | Unlimited | **< 1ms** |
 
 ### 💻 Quick API Test via cURL
 
 ```bash
-# 1. Shorten a URL with Custom Alias & Password Protection
+# 1. Inspect Full System Observability Telemetry (Cache Hit Rate, Queue, Latency, Rate Limits)
+curl -X GET "http://localhost:8000/api/observability"
+
+# 2. Shorten a URL with Custom Alias & Password Protection
 curl -X POST "http://localhost:8000/api/shorten" \
      -H "Content-Type: application/json" \
      -d '{
@@ -153,9 +163,6 @@ curl -X POST "http://localhost:8000/api/shorten" \
        "custom_alias": "my-cool-repo",
        "password": "secretpasscode123"
      }'
-
-# 2. Inspect System Health & Cache Backend
-curl -X GET "http://localhost:8000/api/health"
 
 # 3. Fetch Public Community Feed
 curl -X GET "http://localhost:8000/api/public-links?limit=10"
@@ -171,10 +178,12 @@ The web client is built with **Next.js 14+**, **TypeScript**, and **Neo-Brutalis
 |---|---|---|
 | **Home (`/`)** | Shorten Generator | Snowflake generator, instant clipboard copy, dynamic QR code preview |
 | **Community (`/links`)** | Public Link Feed | Real-time search, category filter pills (`All`, `Open`, `Protected`), QR modal |
+| **Observability (`/system`)** | Live Telemetry Console | Real-time cache hit ratios, buffer queue depth, latency distribution, rate-limit logs |
 | **Dashboard (`/dashboard`)** | Creator Console | Authenticated management, click counters, OS/Device/Referrer breakdown |
 | **Passcode Safe (`/[code]/password`)** | Security Gate | Bcrypt hash verification, brute-force rate limiter |
 | **Custom 404 (`/not-found`)** | Error Diagnostic | Diagnostics box, negative-cache anti-penetration info, quick links |
 | **Link Expired (`/expired`)** | Deactivation Banner | Auto-purged notification for click-capped or time-expired links |
+
 
 ---
 

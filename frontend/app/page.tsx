@@ -30,7 +30,15 @@ export default function Home() {
   const [maxClicks, setMaxClicks] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   
-  const [result, setResult] = useState<{ short_url: string, short_code: string } | null>(null);
+  const [result, setResult] = useState<{ 
+    short_url: string; 
+    short_code: string; 
+    long_url?: string;
+    safety_score?: number;
+    safety_verdict?: string;
+    ai_category?: string;
+    safety_flags?: string[];
+  } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -242,10 +250,26 @@ export default function Home() {
         {/* Result Card */}
         {result && (
           <div className="mt-8 pt-8 border-t-3 border-black animate-in fade-in zoom-in-95">
-            <div className="bg-brutal-paper border-2 border-black rounded-2xl p-6 shadow-brutal">
-              <div className="flex items-center gap-2 bg-brutal-green badge-brutal mb-4 inline-flex">
-                <Check className="w-3.5 h-3.5" />
-                <span>LINK SHORTENED SUCCESSFULLY</span>
+            <div className="bg-brutal-paper border-2 border-black rounded-2xl p-6 shadow-brutal space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 bg-brutal-green badge-brutal inline-flex text-black">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>LINK SHORTENED SUCCESSFULLY</span>
+                </div>
+
+                {/* AI Safety Score Badge */}
+                <div className={`badge-brutal flex items-center gap-1.5 font-mono ${
+                  (result.safety_score ?? 100) >= 85
+                    ? "bg-brutal-green text-black"
+                    : (result.safety_score ?? 100) >= 65
+                    ? "bg-brutal-yellow text-black"
+                    : (result.safety_score ?? 100) >= 40
+                    ? "bg-amber-400 text-black"
+                    : "bg-brutal-pink text-white"
+                }`}>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>AI SAFETY: {result.safety_score ?? 100}/100 · {result.safety_verdict ?? "SAFE"}</span>
+                </div>
               </div>
 
               <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
@@ -307,13 +331,40 @@ export default function Home() {
                   </div>
                 )}
               </div>
+
+              {/* AI Intelligence Threat Analysis Panel */}
+              <div className="pt-4 border-t-2 border-black bg-white rounded-xl p-4 border-2 shadow-brutal-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <span className="text-xs font-black uppercase tracking-wider text-black flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-brutal-pink" />
+                    AI Link Intelligence Scan
+                  </span>
+                  {result.ai_category && (
+                    <span className="text-xs font-mono font-bold bg-brutal-paper border border-black px-2 py-0.5 rounded">
+                      Category: {result.ai_category}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {(result.safety_flags && result.safety_flags.length > 0 ? result.safety_flags : ["Clean Domain Reputation", "SSL/TLS Encrypted"]).map((flag, idx) => (
+                    <span
+                      key={idx}
+                      className="text-xs font-bold px-2.5 py-1 bg-brutal-paper border border-black rounded-lg flex items-center gap-1"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-black"></span>
+                      {flag}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* Feature Badges Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card-brutal p-5 bg-white">
           <div className="inline-block p-2.5 rounded-xl bg-brutal-yellow border-2 border-black shadow-brutal-sm mb-3">
             <Zap className="w-5 h-5 text-black" />
@@ -341,6 +392,16 @@ export default function Home() {
           <h3 className="text-base font-black uppercase text-black">Password Protected</h3>
           <p className="text-xs font-bold text-gray-600 mt-1">
             Bcrypt hashed access keys to lock sensitive links from unauthorized eyes.
+          </p>
+        </div>
+
+        <div className="card-brutal p-5 bg-white">
+          <div className="inline-block p-2.5 rounded-xl bg-purple-300 border-2 border-black shadow-brutal-sm mb-3">
+            <Sparkles className="w-5 h-5 text-black" />
+          </div>
+          <h3 className="text-base font-black uppercase text-black">AI Threat Scanner</h3>
+          <p className="text-xs font-bold text-gray-600 mt-1">
+            Real-time safety scoring (0-100), phishing detection & entropy analysis.
           </p>
         </div>
       </div>
