@@ -15,7 +15,7 @@ Designed from the ground up using modern **Systems Design** best practices to ha
 | Engineering Pillar | Problem Solved | How It Works | Impact |
 |---|---|---|---|
 | **Distributed Snowflake Keygen** | Collision retries & DB increment locks | 64-bit timestamp + Node ID + Sequence with Base62 encoding | **$O(1)$ generation, 0 DB queries**, zero collision risk |
-| **🤖 AI Link Intelligence & Safety** | Malicious URLs, phishing scams & brand spoofing | Real-time heuristic scanner checking entropy, suspicious TLDs, and brands | **0–100 Safety Score**, automated threat vector flags |
+| **AI Link Intelligence & Safety** | Malicious URLs, phishing scams & brand spoofing | Real-time heuristic scanner checking entropy, suspicious TLDs, and brands | **0–100 Safety Score**, automated threat vector flags |
 | **Decoupled Event Pipeline** | Write latency slowing down HTTP redirects | `asyncio.Queue` buffers visits and writes in scheduled micro-batches | **< 2ms redirect latency**; Firestore never blocks user |
 | **Multi-Tier Negative Caching** | Cache Penetration attacks on non-existent links | L1 In-Memory LRU + L2 Redis caching 404 results for 30s | **Database shielded** against DoS spam requests |
 | **Sliding-Window Rate Limiter** | Burst traffic & brute-force passcode cracking | Redis sliding log with automatic thread-safe in-memory fallback | Returns RFC standard `X-RateLimit-*` & `Retry-After` |
