@@ -144,38 +144,45 @@ The FastAPI backend includes interactive Swagger documentation with built-in sch
 
 | Method | Endpoint | Description | Rate Limit Tier | Response Time |
 |---|---|---|---|---|
-| `GET` | `/{code}` | Immediate short URL redirection | 300/min (Anon) | **< 2ms** (L1/L2) |
-| `POST` | `/api/shorten` | Snowflake short code creation + AI scan | 20/min (Anon) | **~15ms** |
-| `GET` | `/api/public-links` | Community public link feed with AI badges | 120/min | **< 5ms** |
-| `POST` | `/api/scan` | Real-time AI threat & entropy scan | 120/min | **~10ms** |
-| `GET` | `/api/scan/{code}` | Fetch AI safety metrics for short code | 120/min | **< 5ms** |
-| `POST` | `/api/verify/{code}` | Passcode verification gate | 10/min (Anti-Brute) | **~25ms** (Bcrypt) |
-| `GET` | `/api/qr/{code}` | Binary PNG QR generation | 30/min | **~10ms** |
-| `GET` | `/api/stats/{code}/detailed` | Detailed analytics breakdown | 120/min | **~30ms** |
-| `POST` | `/api/keys/generate` | Generate $O(1)$ developer API key | Auth Required | **~20ms** |
-| `POST` | `/api/bulk-shorten` | High-throughput bulk shortening via API key | Tier Quota | **~30ms** |
-| `GET` | `/api/observability` | Real-time cache, latency & queue telemetry | Unlimited | **< 1ms** |
-| `GET` | `/api/health` | Basic system health probe | Unlimited | **< 1ms** |
+| `GET` | `/{code}` | Immediate short URL redirection (Atomic click count & Bot filter) | 300/min (Anon) | **< 2ms** (L1/L2) |
+| `POST` | `/api/shorten` | Snowflake short code creation + AI scan (`is_public`, alias, password) | 20/min (Anon) | **~15ms** |
+| `GET` | `/api/public-links` | Community public link feed with redacted protected destinations | 120/min | **< 5ms** |
+| `POST` | `/api/scan` | Real-time AI threat & entropy scan (JSON POST body) | 120/min | **~10ms** |
+| `GET` | `/api/scan/{code}` | Fetch AI safety metrics for short code (Protected auth gate) | 120/min | **< 5ms** |
+| `POST` | `/api/verify/{code}` | Passcode verification gate (Bcrypt 72-byte max) | 10/min (Anti-Brute) | **~25ms** (Off-Thread) |
+| `GET` | `/api/qr/{code}` | Binary PNG QR generation (Off-thread, cached) | 30/min | **~10ms** |
+| `GET` | `/api/stats/{code}/detailed` | Detailed analytics breakdown (Owner-only, Hostname-only Referrer) | 120/min | **~30ms** |
+| `POST` | `/api/keys/generate` | Mint developer API key (Server-side tier, 5 keys max limit) | 5/min (Keys Tier) | **~20ms** |
+| `GET` | `/api/keys` | List user's active API keys (Hash/secret redacted) | 60/min | **~15ms** |
+| `DELETE`| `/api/keys/{key_id}` | Revoke and invalidate developer API key | 60/min | **~15ms** |
+| `POST` | `/api/bulk-shorten` | Atomic bulk shortening (Safe commit, max 100/req) | Tier Quota | **~30ms** |
+| `GET` | `/api/observability` | Real-time cache, latency & queue telemetry (IST) | Unlimited | **< 1ms** |
+| `GET` | `/api/health` | Live Firestore & Redis health probe | Unlimited | **< 1ms** |
+| `GET` | `/favicon.ico` | Static favicon handler (bypasses DB & rate limiter) | Unlimited | **< 0.5ms** |
+| `GET` | `/robots.txt` | Static robots.txt crawler rules | Unlimited | **< 0.5ms** |
 
 ### 💻 Quick API Test via cURL
 
 ```bash
-# 1. Run AI Threat & Safety Scanner on Any URL
-curl -X POST "http://localhost:8000/api/scan?url=https://github.com/fastapi/fastapi"
+# 1. Run AI Threat & Safety Scanner on Any URL (JSON POST Body)
+curl -X POST "http://localhost:8000/api/scan" \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://github.com/fastapi/fastapi"}'
 
-# 2. Inspect Full System Observability Telemetry (IST Timestamps, Cache Hit Rate, Latency P50/P95/P99)
+# 2. Inspect Full System Observability Telemetry (IST Timestamps, L1/L2 Cache Hit Rate, Latency P50/P95/P99)
 curl -X GET "http://localhost:8000/api/observability"
 
-# 3. Shorten a URL with Custom Alias, Password & AI Safety Assessment
+# 3. Shorten a URL with Custom Alias, Password, is_public & AI Safety Assessment
 curl -X POST "http://localhost:8000/api/shorten" \
      -H "Content-Type: application/json" \
      -d '{
        "long_url": "https://github.com/Shraman91/URLShortener",
        "custom_alias": "my-cool-repo",
-       "password": "secretpasscode123"
+       "password": "secretpasscode123",
+       "is_public": true
      }'
 
-# 4. Fetch Public Community Feed
+# 4. Fetch Public Community Feed (Protected URLs Redacted)
 curl -X GET "http://localhost:8000/api/public-links?limit=10"
 ```
 
@@ -537,29 +544,30 @@ Frontend will be live at: `http://localhost:3000`
 ### Collections Schema
 - `urls/{code}`:
   - `long_url`: String
-  - `created_at`: ISO timestamp
-  - `clicks`: Integer (total click count)
+  - `created_at`: ISO 8601 UTC timestamp
+  - `clicks`: Integer (atomic counter)
+  - `is_public`: Boolean (opt-in community feed display)
   - `owner_uid`: String or null
   - `is_password_protected`: Boolean
-  - `password_hash`: String (optional)
-  - `expires_at`: ISO timestamp (optional)
-  - `max_clicks`: Integer (optional)
+  - `password_hash`: String (bcrypt, max 72 bytes) (optional)
+  - `expires_at`: ISO 8601 UTC timestamp (optional)
+  - `max_clicks`: Integer (enforced atomically) (optional)
   - `safety_score`: Integer (0–100)
   - `safety_verdict`: "SAFE" | "MODERATE" | "SUSPICIOUS" | "MALICIOUS"
   - `ai_category`: String (e.g. "Developer & Tech")
   - `safety_flags`: Array of Strings (threat vectors / security notes)
 - `urls/{code}/clicks/{clickId}`:
-  - `timestamp`: ISO timestamp
-  - `referrer`: String
+  - `timestamp`: ISO 8601 UTC timestamp
+  - `referrer`: String (hostname only, query strings & PII stripped)
   - `browser`: String
   - `device`: String
   - `os`: String
-  - `ip_hash`: String (GDPR-anonymized)
+  - `ip_hash`: String (GDPR SHA-256 hashed)
 - `api_keys/{keyId}`:
   - `key_id`: String
   - `secret_hash`: String (SHA-256)
   - `owner_uid`: String
-  - `rate_limit_tier`: "basic" | "pro" | "enterprise"
+  - `rate_limit_tier`: "basic" | "pro" | "enterprise" (server-assigned)
   - `usage_count`: Integer
   - `is_active`: Boolean
 
@@ -581,11 +589,12 @@ service cloud.firestore {
 
 ## 🧪 Running Automated Tests
 
-A dedicated test suite ([`test_system.py`](file:///c:/Users/vkdgs/OneDrive/Desktop/Projects/URLShortener/url-shortener/backend/test_system.py)) tests all backend components:
+A dedicated test suite ([`test_system.py`](file:///c:/Users/vkdgs/OneDrive/Desktop/Projects/URLShortener/backend/test_system.py)) tests all backend components:
 - **Snowflake & Base62 Collision Test**: Generates 1,000 consecutive short codes to assert 0 collisions.
-- **Sliding Window Rate Limiter Test**: Verifies window enforcement, reset counters, and retry periods.
-- **O(1) Auth Test**: Verifies API key generation, hashing integrity, and constant-time validation.
-- **Cache & Negative-Cache Test**: Verifies L1 cache sets, invalidations, and 404 anti-penetration flags.
+- **Sliding Window Rate Limiter & Bot Detection**: Verifies sliding window enforcement, bot user-agent filtering (Slack, Discord, Twitter, WhatsApp), reset counters, and retry periods.
+- **O(1) Auth Test**: Verifies API key generation, hashing integrity, secret redaction, and constant-time validation.
+- **Multi-Tier Caching & Negative-Cache Test**: Verifies L1/L2 cache sets, dynamic TTLs, atomic click increments, and 404 anti-penetration defenses.
+- **AI Threat Scanner & Domain Blocklist Test**: Verifies hostname suffix matching, Shannon entropy computation, brand spoofing heuristics, and phishing defense.
 
 Run the test suite:
 ```bash
@@ -596,9 +605,10 @@ python test_system.py
 Expected Output:
 ```
 [PASS] Keygen & Snowflake tests passed (1,000 unique codes generated with 0 collisions).
-[PASS] Sliding Window Rate Limiter tests passed.
+[PASS] Sliding Window Rate Limiter & Bot Detection tests passed.
 [PASS] O(1) API Key hashing and pair generation tests passed.
 [PASS] Caching and Negative-Caching tests passed.
+[PASS] AI Threat Scanner & Domain Blocklist tests passed.
 
 >>> ALL SYSTEM DESIGN & BACKEND TESTS PASSED SUCCESSFULLY! <<<
 ```

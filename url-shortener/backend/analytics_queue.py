@@ -10,18 +10,12 @@ from firebase import db
 
 
 class AsyncAnalyticsQueue:
-    """
-    High-throughput non-blocking click analytics queue.
-    Buffers click events in-memory and flushes in micro-batches to Firestore,
-    removing write latency and database contention from the redirect path.
-    """
     def __init__(self, batch_size: int = 50, flush_interval: float = 2.0):
         self.batch_size = batch_size
         self.flush_interval = flush_interval
         self._queue: asyncio.Queue = asyncio.Queue()
         self._worker_task: Optional[asyncio.Task] = None
         self._running = False
-        # Telemetry metrics
         self.total_enqueued: int = 0
         self.total_flushed: int = 0
         self.total_batches: int = 0
@@ -45,7 +39,6 @@ class AsyncAnalyticsQueue:
             print("[AnalyticsQueue] Worker stopped and buffer flushed.")
 
     def enqueue(self, event: Dict[str, Any]):
-        """Non-blocking instant enqueue for redirect requests."""
         try:
             self._queue.put_nowait(event)
             self.total_enqueued += 1
@@ -53,7 +46,6 @@ class AsyncAnalyticsQueue:
             print(f"[AnalyticsQueue] Enqueue warning: {e}")
 
     def get_queue_stats(self) -> Dict[str, Any]:
-        """Returns real-time queue observability metrics."""
         return {
             "queue_size": self._queue.qsize(),
             "total_enqueued": self.total_enqueued,
@@ -100,7 +92,6 @@ class AsyncAnalyticsQueue:
             await self._flush_batch(buffer)
 
     async def _flush_batch(self, events: List[Dict[str, Any]]):
-        """Flushes buffered events in atomic Firestore batches without blocking event loop."""
         if not events:
             return
 
@@ -120,14 +111,11 @@ class AsyncAnalyticsQueue:
         batch = db.batch()
         batch_count = 0
 
-        # 1. Update parent link click counts using merge/update
         for code, count in clicks_by_code.items():
             doc_ref = db.collection("urls").document(code)
-            # Use set with merge to avoid failing on deleted URLs
             batch.set(doc_ref, {"clicks": gcf.Increment(count)}, merge=True)
             batch_count += 1
 
-        # 2. Insert detailed click entries
         now_str = datetime.now(timezone.utc).isoformat()
         for ev in events:
             code = ev["code"]
@@ -143,7 +131,7 @@ class AsyncAnalyticsQueue:
             batch.set(click_ref, click_data)
             batch_count += 1
 
-            if batch_count >= 400:  # Respect Firestore 500 limit
+            if batch_count >= 400:
                 try:
                     batch.commit()
                 except Exception as ex:

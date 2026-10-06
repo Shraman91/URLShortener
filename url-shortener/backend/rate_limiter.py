@@ -16,7 +16,6 @@ _last_redis_check = 0.0
 _redis_healthy = False
 _redis_lock = threading.Lock()
 
-# Known bots, web crawlers, and link-preview engines
 BOT_USER_AGENTS = {
     "bot", "crawler", "spider", "slackbot", "twitterbot", "facebookexternalhit",
     "whatsapp", "telegrambot", "discordbot", "linkedinbot", "embedly", "quora link preview",
@@ -46,7 +45,6 @@ def is_rate_limiter_redis_available() -> bool:
 
 
 def is_bot_or_crawler(user_agent: str) -> bool:
-    """Detects preview scrapers and bots to prevent burning click limits or corrupting analytics."""
     if not user_agent:
         return False
     ua_lower = user_agent.lower()
@@ -54,7 +52,6 @@ def is_bot_or_crawler(user_agent: str) -> bool:
 
 
 class InMemorySlidingWindowLimiter:
-    """Thread-safe in-memory Sliding Window Log / Counter."""
     def __init__(self):
         self._lock = threading.Lock()
         self._store: Dict[str, list] = defaultdict(list)
@@ -102,7 +99,6 @@ _in_memory_limiter = InMemorySlidingWindowLimiter()
 
 
 def get_client_ip(request: Request) -> str:
-    """Extracts client IP respecting standard reverse-proxy headers."""
     forwarded_for = request.headers.get("x-forwarded-for")
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
@@ -157,33 +153,33 @@ class RateLimitRule:
 
 TIER_QUOTAS = {
     "anonymous": {
-        "shorten": RateLimitRule(20, 60, "shorten_anon"),         # 20 per min
-        "redirect": RateLimitRule(300, 60, "redirect_anon"),      # 300 per min
-        "verify": RateLimitRule(10, 60, "verify_anon"),           # 10 per min (brute force protection)
-        "qr": RateLimitRule(30, 60, "qr_anon"),                  # 30 per min
+        "shorten": RateLimitRule(20, 60, "shorten_anon"),
+        "redirect": RateLimitRule(300, 60, "redirect_anon"),
+        "verify": RateLimitRule(10, 60, "verify_anon"),
+        "qr": RateLimitRule(30, 60, "qr_anon"),
         "keys": RateLimitRule(5, 60, "keys_anon"),
         "general": RateLimitRule(120, 60, "general_anon"),
     },
     "authenticated": {
-        "shorten": RateLimitRule(120, 60, "shorten_auth"),        # 120 per min
+        "shorten": RateLimitRule(120, 60, "shorten_auth"),
         "redirect": RateLimitRule(1000, 60, "redirect_auth"),
         "verify": RateLimitRule(30, 60, "verify_auth"),
         "qr": RateLimitRule(120, 60, "qr_auth"),
-        "keys": RateLimitRule(10, 60, "keys_auth"),              # 10 key creations per min
+        "keys": RateLimitRule(10, 60, "keys_auth"),
         "general": RateLimitRule(600, 60, "general_auth"),
     },
     "api_basic": {
-        "shorten": RateLimitRule(60, 60, "api_basic"),           # 60 req/min
+        "shorten": RateLimitRule(60, 60, "api_basic"),
         "bulk": RateLimitRule(10, 60, "api_basic_bulk"),
-        "general": RateLimitRule(1000, 3600, "api_basic_hourly"), # 1000 req/hour
+        "general": RateLimitRule(1000, 3600, "api_basic_hourly"),
     },
     "api_pro": {
-        "shorten": RateLimitRule(300, 60, "api_pro"),            # 300 req/min
+        "shorten": RateLimitRule(300, 60, "api_pro"),
         "bulk": RateLimitRule(60, 60, "api_pro_bulk"),
-        "general": RateLimitRule(10000, 3600, "api_pro_hourly"), # 10,000 req/hour
+        "general": RateLimitRule(10000, 3600, "api_pro_hourly"),
     },
     "api_enterprise": {
-        "shorten": RateLimitRule(1200, 60, "api_enterprise"),     # 1,200 req/min
+        "shorten": RateLimitRule(1200, 60, "api_enterprise"),
         "bulk": RateLimitRule(300, 60, "api_enterprise_bulk"),
         "general": RateLimitRule(100000, 3600, "api_enterprise_hourly"),
     },

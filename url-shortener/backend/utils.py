@@ -25,12 +25,10 @@ def get_password_hash(password: str) -> str:
 
 
 def hash_ip(ip: str) -> str:
-    """Anonymizes client IP for GDPR-safe analytics storage."""
     return hashlib.sha256(ip.encode('utf-8')).hexdigest()[:16]
 
 
 def extract_referrer_host(referer_header: str) -> str:
-    """Extracts hostname from Referer header to strip private URL query parameters."""
     if not referer_header or referer_header.strip() == "" or referer_header.lower() == "direct":
         return "Direct"
     try:
@@ -51,7 +49,6 @@ def parse_user_agent(ua_string: str) -> dict:
 
 
 async def cleanup_expired_urls():
-    """Background task to periodically delete expired URLs and invalidate cache off the main thread."""
     while True:
         try:
             def _sync_cleanup():
@@ -78,4 +75,4 @@ async def cleanup_expired_urls():
         except Exception as e:
             print(f"[Cleanup] Error in cleanup task: {e}")
             
-        await asyncio.sleep(60 * 30)  # Check every 30 minutes
+        await asyncio.sleep(60 * 30)

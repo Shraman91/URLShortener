@@ -35,10 +35,9 @@ def is_redis_available() -> bool:
 
 
 class InMemoryLRUCache:
-    """Thread-safe LRU Cache with TTL."""
     def __init__(self, capacity: int = 50000):
         self.capacity = capacity
-        self.cache: OrderedDict[str, tuple] = OrderedDict()  # key -> (value, expire_at)
+        self.cache: OrderedDict[str, tuple] = OrderedDict()
         self.lock = threading.Lock()
 
     def get(self, key: str) -> Optional[Any]:
@@ -69,7 +68,6 @@ class InMemoryLRUCache:
 _local_lru = InMemoryLRUCache(capacity=50000)
 _negative_lru = InMemoryLRUCache(capacity=10000)
 
-# Observability telemetry counters
 _cache_stats = {
     "l1_hits": 0,
     "l2_hits": 0,
@@ -81,22 +79,18 @@ _stats_lock = threading.Lock()
 
 
 def get_cached_url(code: str) -> Optional[Dict[str, Any]]:
-    """Retrieves URL metadata from Redis or Local LRU cache with accurate L1/L2 metric recording."""
-    # 1. Check local LRU
     local_val = _local_lru.get(f"url:{code}")
     if local_val:
         with _stats_lock:
             _cache_stats["l1_hits"] += 1
         return local_val
 
-    # 2. Check Redis
     r = get_redis_client()
     if r:
         try:
             raw = r.get(f"url:{code}")
             if raw:
                 data = json.loads(raw)
-                # Short L1 TTL (60s) to keep multi-instance clusters synchronized
                 _local_lru.set(f"url:{code}", data, ttl_seconds=60)
                 with _stats_lock:
                     _cache_stats["l2_hits"] += 1
@@ -110,12 +104,8 @@ def get_cached_url(code: str) -> Optional[Dict[str, Any]]:
 
 
 def set_cached_url(code: str, data: Dict[str, Any], ttl_seconds: int = 86400):
-    """Sets sanitized URL metadata into L1 memory & L2 Redis."""
-    # Strip sensitive fields from cache
     clean_data = dict(data)
     clean_data.pop("password_hash", None)
-
-    # Invalidate any stale negative cache
     _negative_lru.delete(f"neg:{code}")
 
     with _stats_lock:
@@ -133,7 +123,6 @@ def set_cached_url(code: str, data: Dict[str, Any], ttl_seconds: int = 86400):
 
 
 def invalidate_cached_url(code: str):
-    """Purges URL and 404 cache from both L1 and L2 upon creation/deletion."""
     _local_lru.delete(f"url:{code}")
     _negative_lru.delete(f"neg:{code}")
     r = get_redis_client()
@@ -146,7 +135,6 @@ def invalidate_cached_url(code: str):
 
 
 def is_known_nonexistent(code: str) -> bool:
-    """Protects against cache penetration attacks by checking L1 and L2 404 cache."""
     if _negative_lru.get(f"neg:{code}"):
         with _stats_lock:
             _cache_stats["negative_hits"] += 1
@@ -166,7 +154,6 @@ def is_known_nonexistent(code: str) -> bool:
 
 
 def set_nonexistent(code: str, ttl_seconds: int = 30):
-    """Caches a 404 in both L1 and Redis to shield primary database from DDoS attacks."""
     _negative_lru.set(f"neg:{code}", True, ttl_seconds=ttl_seconds)
     r = get_redis_client()
     if r:
@@ -177,10 +164,6 @@ def set_nonexistent(code: str, ttl_seconds: int = 30):
 
 
 def atomic_increment_clicks(code: str, max_clicks: int) -> Optional[int]:
-    """
-    Atomically increments click count in Redis.
-    Returns current count after increment, or None if Redis is unavailable.
-    """
     r = get_redis_client()
     if not r:
         return None
@@ -196,7 +179,6 @@ def atomic_increment_clicks(code: str, max_clicks: int) -> Optional[int]:
 
 
 def get_cache_stats() -> Dict[str, Any]:
-    """Returns real-time cache observability metrics."""
     with _stats_lock:
         l1 = _cache_stats["l1_hits"]
         l2 = _cache_stats["l2_hits"]
