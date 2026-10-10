@@ -25,8 +25,11 @@ interface URLStats {
   clicks_per_day: Record<string, number>;
   top_referrers: Record<string, number>;
   top_browsers: Record<string, number>;
+  top_os?: Record<string, number>;
   top_devices: Record<string, number>;
 }
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function DashboardPage() {
   const { user, token, loading } = useAuth();
@@ -50,7 +53,7 @@ export default function DashboardPage() {
 
   const fetchUrls = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/my-urls", {
+      const res = await fetch(`${API_URL}/api/my-urls`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -68,7 +71,7 @@ export default function DashboardPage() {
     if (!confirm(`Are you sure you want to delete short link /${code}?`)) return;
     
     try {
-      const res = await fetch(`http://localhost:8000/api/urls/${code}`, {
+      const res = await fetch(`${API_URL}/api/urls/${code}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -87,10 +90,14 @@ export default function DashboardPage() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8000/api/stats/${code}/detailed`);
+      const res = await fetch(`${API_URL}/api/stats/${code}/detailed`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       if (res.ok) {
         const data = await res.json();
         setSelectedStats({ code, stats: data });
+      } else {
+        console.error("Failed to load stats:", res.status, await res.text());
       }
     } catch (err) {
       console.error(err);
@@ -290,6 +297,24 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Operating Systems */}
+                  {selectedStats.stats.top_os && Object.keys(selectedStats.stats.top_os).length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-black mb-2 flex items-center gap-1.5">
+                        <Monitor className="w-3.5 h-3.5 text-brutal-yellow" />
+                        Operating Systems
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(selectedStats.stats.top_os).map(([osName, count]) => (
+                          <div key={osName} className="flex justify-between items-center text-xs font-bold border-2 border-black rounded-lg p-2 bg-brutal-paper">
+                            <span>{osName}</span>
+                            <span className="bg-brutal-yellow border border-black px-2 py-0.5 rounded font-mono">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Browsers */}
                   <div>
